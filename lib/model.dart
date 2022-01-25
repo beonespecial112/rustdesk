@@ -1,6 +1,5 @@
 import 'package:ffi/ffi.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info/device_info.dart';
@@ -44,6 +43,9 @@ class FfiModel with ChangeNotifier {
   get pi => _pi;
 
   FfiModel() {
+    isIOS = Platform.isIOS;
+    isAndroid = Platform.isAndroid;
+    isWeb = false;
     Translator.call = translate;
     clear();
     () async {
@@ -295,7 +297,7 @@ class CanvasModel with ChangeNotifier {
     notifyListeners();
   }
 
-  void clear([bool notify=false]) {
+  void clear([bool notify = false]) {
     _x = 0;
     _y = 0;
     _scale = 1.0;
@@ -797,7 +799,7 @@ String translate(String name) {
   final v = tmp[name];
   if (v == null) {
     var a = 'translate';
-    var b = '{"locale": "${Platform.localeName}", "text": "${name}"}';
+    var b = '{"locale": "${Platform.localeName}", "text": "$name"}';
     return FFI.getByName(a, b);
   } else {
     return v;

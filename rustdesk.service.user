@@ -1,0 +1,13 @@
+[Unit]
+Description=RustDesk
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rustdesk --server
+PIDFile=/run/rustdesk.user.pid
+KillMode=mixed
+TimeoutStopSec=30
+LimitNOFILE=100000
+
+[Install]
+WantedBy=multi-user.target

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/desktop/pages/file_manager_page.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
-import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
 
@@ -20,12 +19,13 @@ class FileManagerTabPage extends StatefulWidget {
 }
 
 class _FileManagerTabPageState extends State<FileManagerTabPage> {
-  final tabController = Get.put(DesktopTabController());
+  DesktopTabController get tabController => Get.find<DesktopTabController>();
 
   static final IconData selectedIcon = Icons.file_copy_sharp;
   static final IconData unselectedIcon = Icons.file_copy_outlined;
 
   _FileManagerTabPageState(Map<String, dynamic> params) {
+    Get.put(DesktopTabController());
     tabController.add(TabInfo(
         key: params['id'],
         label: params['id'],
@@ -42,7 +42,7 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
 
     rustDeskWinManager.setMethodHandler((call, fromWindowId) async {
       print(
-          "call ${call.method} with args ${call.arguments} from window ${fromWindowId}");
+          "call ${call.method} with args ${call.arguments} from window ${fromWindowId} to ${windowId()}");
       // for simplify, just replace connectionId
       if (call.method == "new_file_transfer") {
         final args = jsonDecode(call.arguments);
@@ -55,21 +55,15 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
             unselectedIcon: unselectedIcon,
             page: FileManagerPage(key: ValueKey(id), id: id)));
       } else if (call.method == "onDestroy") {
-        tabController.state.value.tabs.forEach((tab) {
-          print("executing onDestroy hook, closing ${tab.label}}");
-          final tag = tab.label;
-          ffi(tag).close().then((_) {
-            Get.delete<FFI>(tag: tag);
-          });
-        });
-        Get.back();
+        tabController.clear();
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = isDarkTheme() ? TarBarTheme.dark() : TarBarTheme.light();
+    final theme =
+        isDarkTheme() ? const TarBarTheme.dark() : const TarBarTheme.light();
     return SubWindowDragToResizeArea(
       windowId: windowId(),
       child: Container(
@@ -80,7 +74,10 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
             body: DesktopTab(
               controller: tabController,
               theme: theme,
-              isMainWindow: false,
+              tabType: DesktopTabType.fileTransfer,
+              onClose: () {
+                tabController.clear();
+              },
               tail: AddButton(
                 theme: theme,
               ).paddingOnly(left: 10),
@@ -90,9 +87,8 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
   }
 
   void onRemoveId(String id) {
-    ffi("ft_$id").close();
-    if (tabController.state.value.tabs.length == 0) {
-      WindowController.fromWindowId(windowId()).close();
+    if (tabController.state.value.tabs.isEmpty) {
+      WindowController.fromWindowId(windowId()).hide();
     }
   }
 
